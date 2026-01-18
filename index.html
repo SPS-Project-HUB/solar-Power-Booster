@@ -29,7 +29,6 @@
       --success: #2ecc71;
       --warning: #f39c12;
       --danger: #e74c3c;
-      --light-color: #ffc107;
       --border: rgba(255, 255, 255, 0.08);
       --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
@@ -103,7 +102,7 @@
     /* Dashboard Grid */
     .dashboard {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px;
       margin-bottom: 30px;
     }
@@ -182,22 +181,6 @@
       margin-top: 15px;
       font-size: 14px;
       color: var(--text-muted);
-    }
-
-    /* Light Intensity Card Specific Styling */
-    .light-card .card-icon {
-      background: rgba(255, 193, 7, 0.2);
-      color: #ffc107;
-      box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
-    }
-
-    .light-card {
-      border: 1px solid rgba(255, 193, 7, 0.2);
-      background: linear-gradient(145deg, #2a2a40, #24243a);
-    }
-
-    .light-card:hover {
-      box-shadow: 0 12px 40px rgba(255, 193, 7, 0.2);
     }
 
     /* Charts Section */
@@ -454,21 +437,6 @@
           <span> | Uptime: <span id="wifiUptime">--</span></span>
         </div>
       </div>
-
-      <!-- Light Intensity -->
-      <div class="card light-card">
-        <div class="card-header">
-          <h3 class="card-title"><i class="fas fa-sun"></i> Light Intensity</h3>
-          <div class="card-icon">
-            <i class="fas fa-sun"></i>
-          </div>
-        </div>
-        <div class="card-value"><span id="light">--</span> <span class="card-unit">lux</span></div>
-        <div class="card-footer">
-          <span id="lightStatus" class="status-normal">Optimal</span>
-          <span> | Min: 200 lux | Time-based simulation</span>
-        </div>
-      </div>
     </div>
 
     <!-- Charts Section -->
@@ -476,7 +444,7 @@
       <!-- Main Chart -->
       <div class="chart-container">
         <div class="chart-header">
-          <h3 class="chart-title">Voltage, Temperature & Light Trends</h3>
+          <h3 class="chart-title">Voltage & Temperature Trends</h3>
           <div class="chart-timeframe">
             <button class="time-btn active" onclick="changeTimeframe('1h')">1H</button>
             <button class="time-btn" onclick="changeTimeframe('6h')">6H</button>
@@ -514,8 +482,8 @@
           <span class="info-value status-connected"><i class="fas fa-check-circle"></i> Active</span>
         </div>
         <div class="info-item">
-          <span class="info-label">Light Sensor</span>
-          <span class="info-value" id="lightSensorStatus">Simulated</span>
+          <span class="info-label">API Response Time</span>
+          <span class="info-value" id="responseTime">42 ms</span>
         </div>
         <div class="info-item">
           <span class="info-label">Data Refresh Rate</span>
@@ -556,42 +524,8 @@
       labels: [],
       vin: [],
       vout: [],
-      temp: [],
-      light: []
+      temp: []
     };
-
-    // Function to simulate light intensity based on time of day
-    function simulateLightIntensity() {
-      const now = new Date();
-      const hour = now.getHours();
-      const minute = now.getMinutes();
-      
-      // Calculate time as decimal (e.g., 14:30 = 14.5)
-      const timeDecimal = hour + minute / 60;
-      
-      // Simulate daylight curve (peaks at 12:00)
-      let lightValue;
-      if (timeDecimal >= 5 && timeDecimal <= 19) { // Daylight hours (5 AM to 7 PM)
-        // Create a bell curve for daylight
-        const peakHour = 12; // Sun is strongest at noon
-        const distanceFromPeak = Math.abs(timeDecimal - peakHour);
-        
-        // Base light level with some randomness
-        const baseLight = 1500;
-        const variation = Math.random() * 300 - 150; // Random variation ±150
-        
-        // Calculate light based on distance from peak
-        lightValue = baseLight * Math.exp(-Math.pow(distanceFromPeak, 2) / 18) + variation;
-        
-        // Ensure minimum during daylight
-        lightValue = Math.max(lightValue, 200);
-      } else {
-        // Night time (low light)
-        lightValue = Math.random() * 50 + 10; // 10-60 lux at night
-      }
-      
-      return Math.round(lightValue);
-    }
 
     // Initialize charts
     function initCharts() {
@@ -631,16 +565,6 @@
               fill: true,
               tension: 0.4,
               yAxisID: 'y1'
-            },
-            {
-              label: 'Light Intensity (lux)',
-              data: chartData.light,
-              borderColor: '#ffc107',
-              backgroundColor: 'rgba(255, 193, 7, 0.1)',
-              borderWidth: 2,
-              fill: true,
-              tension: 0.4,
-              yAxisID: 'y2'
             }
           ]
         },
@@ -692,23 +616,6 @@
                 color: 'rgba(255, 255, 255, 0.7)'
               }
             },
-            y2: {
-              type: 'linear',
-              display: true,
-              position: 'right',
-              offset: true,
-              grid: {
-                drawOnChartArea: false,
-              },
-              ticks: {
-                color: 'rgba(255, 255, 255, 0.7)'
-              },
-              title: {
-                display: true,
-                text: 'Light (lux)',
-                color: 'rgba(255, 255, 255, 0.7)'
-              }
-            }
           },
           plugins: {
             legend: {
@@ -722,7 +629,7 @@
     }
 
     // Update chart data
-    function updateChartData(vin, vout, temp, light) {
+    function updateChartData(vin, vout, temp) {
       const now = new Date();
       const timeLabel = now.getHours().toString().padStart(2, '0') + ':' + 
                        now.getMinutes().toString().padStart(2, '0') + ':' + 
@@ -733,7 +640,6 @@
       chartData.vin.push(vin);
       chartData.vout.push(vout);
       chartData.temp.push(temp);
-      chartData.light.push(light);
       
       // Keep only last 20 data points for performance
       if (chartData.labels.length > 20) {
@@ -741,7 +647,6 @@
         chartData.vin.shift();
         chartData.vout.shift();
         chartData.temp.shift();
-        chartData.light.shift();
       }
       
       // Update chart
@@ -794,23 +699,6 @@
         tempStatus.textContent = 'Optimal';
       }
       
-      // Light intensity status - use simulated data if not available
-      let light = data.light_intensity || simulateLightIntensity();
-      const lightStatus = document.getElementById('lightStatus');
-      if (light < 500) {
-        lightStatus.className = 'status-critical';
-        lightStatus.textContent = 'Low';
-      } else if (light < 1000) {
-        lightStatus.className = 'status-warning';
-        lightStatus.textContent = 'Moderate';
-      } else {
-        lightStatus.className = 'status-normal';
-        lightStatus.textContent = 'Optimal';
-      }
-      
-      // Update light value display
-      document.getElementById('light').textContent = light;
-      
       // Fan status
       const fan = data.fan_percent || 0;
       const fanStatus = document.getElementById('fanStatus');
@@ -850,8 +738,6 @@
         boostStatus.className = 'status-normal';
         boostStatus.textContent = 'Active';
       }
-      
-      return light; // Return light value for chart updates
     }
 
     // Calculate and update system efficiency
@@ -888,10 +774,6 @@
     document.addEventListener('DOMContentLoaded', function() {
       initCharts();
       
-      // Initialize with some simulated light data
-      const initialLight = simulateLightIntensity();
-      document.getElementById('light').textContent = initialLight;
-      
       // Update time every second
       setInterval(updateTimeDisplay, 1000);
     });
@@ -924,14 +806,14 @@
         wifi.innerHTML = '<span class="status-disconnected"><i class="fas fa-wifi-slash"></i> DISCONNECTED</span>';
       }
 
-      // Update status indicators and get light value
-      const light = updateStatusIndicators(d || {});
+      // Update status indicators
+      updateStatusIndicators(d || {});
       
       // Update system efficiency
       updateSystemEfficiency(parseFloat(vin), parseFloat(vout));
       
       // Update chart data
-      updateChartData(parseFloat(vin), parseFloat(vout), parseFloat(temp), light);
+      updateChartData(parseFloat(vin), parseFloat(vout), parseFloat(temp));
       
       // Update time display
       updateTimeDisplay();
