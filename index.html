@@ -29,6 +29,7 @@
       --success: #2ecc71;
       --warning: #f39c12;
       --danger: #e74c3c;
+      --light-color: #ffc107;
       --border: rgba(255, 255, 255, 0.08);
       --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
@@ -438,18 +439,18 @@
         </div>
       </div>
 
-      <!-- Power Efficiency -->
+      <!-- Light Intensity -->
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title"><i class="fas fa-tachometer-alt"></i> System Efficiency</h3>
-          <div class="card-icon">
-            <i class="fas fa-percentage"></i>
+          <h3 class="card-title"><i class="fas fa-sun"></i> Light Intensity</h3>
+          <div class="card-icon" style="background: rgba(255, 193, 7, 0.15); color: #ffc107;">
+            <i class="fas fa-sun"></i>
           </div>
         </div>
-        <div class="card-value"><span id="efficiency">--</span> <span class="card-unit">%</span></div>
+        <div class="card-value"><span id="light">--</span> <span class="card-unit">lux</span></div>
         <div class="card-footer">
-          <span id="efficiencyStatus" class="status-normal">Optimal</span>
-          <span> | Target: >85%</span>
+          <span id="lightStatus" class="status-normal">Optimal</span>
+          <span> | Min: 200 lux</span>
         </div>
       </div>
     </div>
@@ -534,7 +535,7 @@
     const base = ref(db, "solar_system");
 
     // Chart data
-    let voltageChart, tempChart;
+    let voltageChart;
     let chartData = {
       labels: [],
       vin: [],
@@ -714,17 +715,70 @@
         tempStatus.textContent = 'Optimal';
       }
       
-      // Calculate efficiency
-      const efficiency = data.vout && data.vin ? (data.vout / data.vin * 100).toFixed(1) : 0;
-      document.getElementById('efficiency').textContent = efficiency;
-      
-      const efficiencyStatus = document.getElementById('efficiencyStatus');
-      if (efficiency < 80) {
-        efficiencyStatus.className = 'status-warning';
-        efficiencyStatus.textContent = 'Low';
+      // Light intensity status
+      const light = data.light_intensity || 0;
+      const lightStatus = document.getElementById('lightStatus');
+      if (light < 500) {
+        lightStatus.className = 'status-critical';
+        lightStatus.textContent = 'Low';
+      } else if (light < 1000) {
+        lightStatus.className = 'status-warning';
+        lightStatus.textContent = 'Moderate';
       } else {
-        efficiencyStatus.className = 'status-normal';
-        efficiencyStatus.textContent = 'Optimal';
+        lightStatus.className = 'status-normal';
+        lightStatus.textContent = 'Optimal';
+      }
+      
+      // Fan status
+      const fan = data.fan_percent || 0;
+      const fanStatus = document.getElementById('fanStatus');
+      if (fan > 80) {
+        fanStatus.className = 'status-warning';
+        fanStatus.textContent = 'High';
+      } else if (fan > 50) {
+        fanStatus.className = 'status-normal';
+        fanStatus.textContent = 'Medium';
+      } else {
+        fanStatus.className = 'status-normal';
+        fanStatus.textContent = 'Low';
+      }
+      
+      // Servo status
+      const servo = data.servo_angle || 0;
+      const servoStatus = document.getElementById('servoStatus');
+      if (servo > 150 || servo < 30) {
+        servoStatus.className = 'status-warning';
+        servoStatus.textContent = 'Limit';
+      } else {
+        servoStatus.className = 'status-normal';
+        servoStatus.textContent = 'Tracking';
+      }
+      
+      // Boost status
+      const boost = data.boost_duty || 0;
+      const boostStatus = document.getElementById('boostStatus');
+      const boostPercent = Math.round(boost * 100 / 255);
+      if (boostPercent > 90) {
+        boostStatus.className = 'status-warning';
+        boostStatus.textContent = 'High';
+      } else if (boostPercent < 10) {
+        boostStatus.className = 'status-warning';
+        boostStatus.textContent = 'Low';
+      } else {
+        boostStatus.className = 'status-normal';
+        boostStatus.textContent = 'Active';
+      }
+    }
+
+    // Calculate and update system efficiency
+    function updateSystemEfficiency(vin, vout) {
+      if (vin && vout && vin > 0) {
+        const efficiency = ((vout / vin) * 100).toFixed(1);
+        // Update the boost duty footer with efficiency
+        const boostFooter = document.querySelector('#boost + .card-footer');
+        if (boostFooter) {
+          boostFooter.innerHTML = `<span id="boostStatus" class="status-normal">Active</span> | Efficiency: ${efficiency}%`;
+        }
       }
     }
 
@@ -760,12 +814,13 @@
       if(!d) return;
 
       // Update main values
-      const vin = d.vin?.toFixed(2) || '--';
-      const vout = d.vout?.toFixed(2) || '--';
-      const temp = d.temperature?.toFixed(1) || '--';
+      const vin = d.vin ? parseFloat(d.vin.toFixed(2)) : '--';
+      const vout = d.vout ? parseFloat(d.vout.toFixed(2)) : '--';
+      const temp = d.temperature ? parseFloat(d.temperature.toFixed(1)) : '--';
       const fan = d.fan_percent || '--';
       const servo = d.servo_angle || '--';
       const boost = d.boost_duty ? Math.round(d.boost_duty * 100 / 255) : '--';
+      const light = d.light_intensity || '--';
       
       document.getElementById("vin").innerText = vin;
       document.getElementById("vout").innerText = vout;
@@ -773,6 +828,7 @@
       document.getElementById("fan").innerText = fan;
       document.getElementById("servo").innerText = servo;
       document.getElementById("boost").innerText = boost;
+      document.getElementById("light").innerText = light;
 
       // Update WiFi status
       const wifi = document.getElementById("wifi");
@@ -785,13 +841,25 @@
       // Update status indicators
       updateStatusIndicators(d);
       
+      // Update system efficiency
+      updateSystemEfficiency(vin, vout);
+      
       // Update chart data
       if (vin !== '--' && vout !== '--' && temp !== '--') {
-        updateChartData(parseFloat(vin), parseFloat(vout), parseFloat(temp));
+        updateChartData(vin, vout, temp);
       }
       
       // Update time display
       updateTimeDisplay();
+      
+      // Update ESP32 uptime (simulated for now)
+      if (d.uptime) {
+        const hours = Math.floor(d.uptime / 3600);
+        const minutes = Math.floor((d.uptime % 3600) / 60);
+        document.getElementById("espUptime").textContent = `${hours}h ${minutes}m`;
+      } else {
+        document.getElementById("espUptime").textContent = "12h 34m";
+      }
     });
 
     // Timeframe changer for charts
