@@ -359,7 +359,7 @@
         <div class="card-value"><span id="vout">--</span> <span class="card-unit">V</span></div>
         <div class="card-footer">
           <span id="voutStatus" class="status-normal">Normal</span>
-          <span> | Target: 19V</span>
+          <span> | Target: 12.0V</span>
         </div>
       </div>
 
@@ -389,7 +389,7 @@
         <div class="card-value"><span id="fan">--</span> <span class="card-unit">%</span></div>
         <div class="card-footer">
           <span id="fanStatus" class="status-normal">Auto</span>
-          <span> | Last 24h avg: 45%</span>
+          <span> | Temp Controlled</span>
         </div>
       </div>
 
@@ -404,7 +404,7 @@
         <div class="card-value"><span id="servo">--</span> <span class="card-unit">°</span></div>
         <div class="card-footer">
           <span id="servoStatus" class="status-normal">Tracking</span>
-          <span> | Range: 0-180°</span>
+          <span> | Range: 30-150°</span>
         </div>
       </div>
 
@@ -419,7 +419,7 @@
         <div class="card-value"><span id="boost">--</span> <span class="card-unit">%</span></div>
         <div class="card-footer">
           <span id="boostStatus" class="status-normal">Active</span>
-          <span> | Efficiency: --%</span>
+          <span> | Range: 30-220</span>
         </div>
       </div>
 
@@ -434,7 +434,37 @@
         <div class="card-value" id="wifi">--</div>
         <div class="card-footer">
           <span>Signal: <span id="wifiSignal">--</span> dBm</span>
-          <span> | Uptime: <span id="wifiUptime">--</span></span>
+          <span> | ESP32 Uptime: <span id="espUptime">--</span></span>
+        </div>
+      </div>
+
+      <!-- LDR Left -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fas fa-lightbulb"></i> LDR Left</h3>
+          <div class="card-icon">
+            <i class="fas fa-sun"></i>
+          </div>
+        </div>
+        <div class="card-value"><span id="ldrLeft">--</span></div>
+        <div class="card-footer">
+          <span id="ldrLeftStatus" class="status-normal">Normal</span>
+          <span> | Threshold: 40</span>
+        </div>
+      </div>
+
+      <!-- LDR Right -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fas fa-lightbulb"></i> LDR Right</h3>
+          <div class="card-icon">
+            <i class="fas fa-sun"></i>
+          </div>
+        </div>
+        <div class="card-value"><span id="ldrRight">--</span></div>
+        <div class="card-footer">
+          <span id="ldrRightStatus" class="status-normal">Normal</span>
+          <span> | Threshold: 40</span>
         </div>
       </div>
     </div>
@@ -466,28 +496,28 @@
           </div>
         </div>
         <div class="info-item">
-          <span class="info-label">ESP32 Uptime</span>
-          <span class="info-value" id="espUptime">--</span>
+          <span class="info-label">WiFi SSID</span>
+          <span class="info-value" id="wifiSSID">iPhone</span>
         </div>
         <div class="info-item">
-          <span class="info-label">Data Points Today</span>
-          <span class="info-value" id="dataPoints">1,248</span>
+          <span class="info-label">Target Voltage</span>
+          <span class="info-value">12.0V</span>
         </div>
         <div class="info-item">
-          <span class="info-label">Last Restart</span>
-          <span class="info-value" id="lastRestart">2 days ago</span>
+          <span class="info-label">Voltage Divider</span>
+          <span class="info-value">5.7</span>
         </div>
         <div class="info-item">
           <span class="info-label">Firebase Connection</span>
           <span class="info-value status-connected"><i class="fas fa-check-circle"></i> Active</span>
         </div>
         <div class="info-item">
-          <span class="info-label">API Response Time</span>
-          <span class="info-value" id="responseTime">42 ms</span>
+          <span class="info-label">Update Interval</span>
+          <span class="info-value">1 second</span>
         </div>
         <div class="info-item">
-          <span class="info-label">Data Refresh Rate</span>
-          <span class="info-value">2 seconds</span>
+          <span class="info-label">LDR Threshold</span>
+          <span class="info-value">40</span>
         </div>
       </div>
     </div>
@@ -524,7 +554,8 @@
       labels: [],
       vin: [],
       vout: [],
-      temp: []
+      temp: [],
+      boost: []
     };
 
     // Initialize charts
@@ -565,6 +596,16 @@
               fill: true,
               tension: 0.4,
               yAxisID: 'y1'
+            },
+            {
+              label: 'Boost Duty (%)',
+              data: chartData.boost,
+              borderColor: '#f39c12',
+              backgroundColor: 'rgba(243, 156, 18, 0.1)',
+              borderWidth: 2,
+              fill: false,
+              tension: 0.4,
+              yAxisID: 'y2'
             }
           ]
         },
@@ -616,6 +657,23 @@
                 color: 'rgba(255, 255, 255, 0.7)'
               }
             },
+            y2: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              offset: true,
+              grid: {
+                drawOnChartArea: false,
+              },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)'
+              },
+              title: {
+                display: true,
+                text: 'Boost Duty (%)',
+                color: 'rgba(255, 255, 255, 0.7)'
+              }
+            }
           },
           plugins: {
             legend: {
@@ -629,7 +687,7 @@
     }
 
     // Update chart data
-    function updateChartData(vin, vout, temp) {
+    function updateChartData(vin, vout, temp, boost) {
       const now = new Date();
       const timeLabel = now.getHours().toString().padStart(2, '0') + ':' + 
                        now.getMinutes().toString().padStart(2, '0') + ':' + 
@@ -640,6 +698,7 @@
       chartData.vin.push(vin);
       chartData.vout.push(vout);
       chartData.temp.push(temp);
+      chartData.boost.push(boost);
       
       // Keep only last 20 data points for performance
       if (chartData.labels.length > 20) {
@@ -647,6 +706,7 @@
         chartData.vin.shift();
         chartData.vout.shift();
         chartData.temp.shift();
+        chartData.boost.shift();
       }
       
       // Update chart
@@ -660,11 +720,11 @@
       // Input voltage status
       const vin = data.vin || 0;
       const vinStatus = document.getElementById('vinStatus');
-      if (vin < 12) {
+      if (vin < 10) {
         vinStatus.className = 'status-critical';
         vinStatus.textContent = 'Low';
-      } else if (vin > 22) {
-        vinStatus.className = 'status-warning';
+      } else if (vin > 25) {
+        vinStatus.className = 'status-critical';
         vinStatus.textContent = 'High';
       } else {
         vinStatus.className = 'status-normal';
@@ -674,10 +734,10 @@
       // Output voltage status
       const vout = data.vout || 0;
       const voutStatus = document.getElementById('voutStatus');
-      if (vout < 18) {
-        voutStatus.className = 'status-critical';
+      if (vout < 11.5) {
+        voutStatus.className = 'status-warning';
         voutStatus.textContent = 'Low';
-      } else if (vout > 20) {
+      } else if (vout > 12.5) {
         voutStatus.className = 'status-warning';
         voutStatus.textContent = 'High';
       } else {
@@ -708,15 +768,18 @@
       } else if (fan > 50) {
         fanStatus.className = 'status-normal';
         fanStatus.textContent = 'Medium';
-      } else {
+      } else if (fan > 0) {
         fanStatus.className = 'status-normal';
         fanStatus.textContent = 'Low';
+      } else {
+        fanStatus.className = 'status-normal';
+        fanStatus.textContent = 'Off';
       }
       
       // Servo status
-      const servo = data.servo_angle || 0;
+      const servo = data.servo_angle || 90;
       const servoStatus = document.getElementById('servoStatus');
-      if (servo > 150 || servo < 30) {
+      if (servo >= 150 || servo <= 30) {
         servoStatus.className = 'status-warning';
         servoStatus.textContent = 'Limit';
       } else {
@@ -725,30 +788,40 @@
       }
       
       // Boost status
-      const boost = data.boost_duty || 0;
+      const boost = data.boost_duty || 90;
+      const boostPercent = Math.round((boost / 255) * 100);
       const boostStatus = document.getElementById('boostStatus');
-      const boostPercent = Math.round(boost * 100 / 255);
-      if (boostPercent > 90) {
+      if (boostPercent > 85) {
         boostStatus.className = 'status-warning';
         boostStatus.textContent = 'High';
-      } else if (boostPercent < 10) {
+      } else if (boostPercent < 15) {
         boostStatus.className = 'status-warning';
         boostStatus.textContent = 'Low';
       } else {
         boostStatus.className = 'status-normal';
         boostStatus.textContent = 'Active';
       }
-    }
-
-    // Calculate and update system efficiency
-    function updateSystemEfficiency(vin, vout) {
-      if (vin && vout && vin > 0) {
-        const efficiency = ((vout / vin) * 100).toFixed(1);
-        // Update the boost duty footer with efficiency
-        const boostFooter = document.querySelector('#boost + .card-footer');
-        if (boostFooter) {
-          boostFooter.innerHTML = `<span id="boostStatus" class="status-normal">Active</span> | Efficiency: ${efficiency}%`;
-        }
+      
+      // LDR Left status
+      const ldrLeft = data.ldr_left || 0;
+      const ldrLeftStatus = document.getElementById('ldrLeftStatus');
+      if (ldrLeft < 100) {
+        ldrLeftStatus.className = 'status-warning';
+        ldrLeftStatus.textContent = 'Low';
+      } else {
+        ldrLeftStatus.className = 'status-normal';
+        ldrLeftStatus.textContent = 'Normal';
+      }
+      
+      // LDR Right status
+      const ldrRight = data.ldr_right || 0;
+      const ldrRightStatus = document.getElementById('ldrRightStatus');
+      if (ldrRight < 100) {
+        ldrRightStatus.className = 'status-warning';
+        ldrRightStatus.textContent = 'Low';
+      } else {
+        ldrRightStatus.className = 'status-normal';
+        ldrRightStatus.textContent = 'Normal';
       }
     }
 
@@ -782,44 +855,56 @@
     onValue(base, (snapshot) => {
       const d = snapshot.val();
       
-      // Update main values from Firebase
-      const vin = d && d.vin ? parseFloat(d.vin.toFixed(2)) : (Math.random() * 5 + 15).toFixed(2);
-      const vout = d && d.vout ? parseFloat(d.vout.toFixed(2)) : (Math.random() * 2 + 18).toFixed(2);
-      const temp = d && d.temperature ? parseFloat(d.temperature.toFixed(1)) : (Math.random() * 20 + 25).toFixed(1);
-      const fan = d && d.fan_percent || Math.floor(Math.random() * 100);
-      const servo = d && d.servo_angle || Math.floor(Math.random() * 180);
-      const boost = d && d.boost_duty ? Math.round(d.boost_duty * 100 / 255) : Math.floor(Math.random() * 100);
-      
-      document.getElementById("vin").innerText = vin;
-      document.getElementById("vout").innerText = vout;
-      document.getElementById("temp").innerText = temp;
-      document.getElementById("fan").innerText = fan;
-      document.getElementById("servo").innerText = servo;
-      document.getElementById("boost").innerText = boost;
+      if (d) {
+        // Update main values from Firebase
+        const vin = d.vin ? parseFloat(d.vin.toFixed(2)) : '--';
+        const vout = d.vout ? parseFloat(d.vout.toFixed(2)) : '--';
+        const temp = d.temperature ? parseFloat(d.temperature.toFixed(1)) : '--';
+        const fan = d.fan_percent || '--';
+        const servo = d.servo_angle || '--';
+        const boost = d.boost_duty || '--';
+        const ldrLeft = d.ldr_left || '--';
+        const ldrRight = d.ldr_right || '--';
+        const boostPercent = boost !== '--' ? Math.round((boost / 255) * 100) : '--';
+        const timestamp = d.timestamp || 0;
+        
+        document.getElementById("vin").innerText = vin;
+        document.getElementById("vout").innerText = vout;
+        document.getElementById("temp").innerText = temp;
+        document.getElementById("fan").innerText = fan;
+        document.getElementById("servo").innerText = servo;
+        document.getElementById("boost").innerText = boostPercent;
+        document.getElementById("ldrLeft").innerText = ldrLeft;
+        document.getElementById("ldrRight").innerText = ldrRight;
 
-      // Update WiFi status
-      const wifi = document.getElementById("wifi");
-      if(d && d.wifi_status === "CONNECTED"){
-        wifi.innerHTML = '<span class="status-connected"><i class="fas fa-wifi"></i> CONNECTED</span>';
-        document.getElementById("wifiSignal").textContent = Math.floor(Math.random() * 30 - 70);
-      } else {
-        wifi.innerHTML = '<span class="status-disconnected"><i class="fas fa-wifi-slash"></i> DISCONNECTED</span>';
+        // Update WiFi status
+        const wifi = document.getElementById("wifi");
+        if(d.wifi_status === "CONNECTED"){
+          wifi.innerHTML = '<span class="status-connected"><i class="fas fa-wifi"></i> CONNECTED</span>';
+          document.getElementById("wifiSignal").textContent = Math.floor(Math.random() * 30 - 70);
+        } else {
+          wifi.innerHTML = '<span class="status-disconnected"><i class="fas fa-wifi-slash"></i> DISCONNECTED</span>';
+        }
+
+        // Update ESP32 uptime
+        if (timestamp > 0) {
+          const hours = Math.floor(timestamp / 3600);
+          const minutes = Math.floor((timestamp % 3600) / 60);
+          const seconds = timestamp % 60;
+          document.getElementById("espUptime").textContent = `${hours}h ${minutes}m ${seconds}s`;
+        }
+
+        // Update status indicators
+        updateStatusIndicators(d);
+        
+        // Update chart data
+        if (vin !== '--' && vout !== '--' && temp !== '--' && boostPercent !== '--') {
+          updateChartData(parseFloat(vin), parseFloat(vout), parseFloat(temp), boostPercent);
+        }
+        
+        // Update time display
+        updateTimeDisplay();
       }
-
-      // Update status indicators
-      updateStatusIndicators(d || {});
-      
-      // Update system efficiency
-      updateSystemEfficiency(parseFloat(vin), parseFloat(vout));
-      
-      // Update chart data
-      updateChartData(parseFloat(vin), parseFloat(vout), parseFloat(temp));
-      
-      // Update time display
-      updateTimeDisplay();
-      
-      // Update ESP32 uptime (simulated)
-      document.getElementById("espUptime").textContent = "12h 34m";
     });
 
     // Timeframe changer for charts
